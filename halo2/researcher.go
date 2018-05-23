@@ -10,7 +10,8 @@ import (
 const (
 	ErrorValidatingMapHeader = "Failed to validate map header"
 
-	headerLocation = 2044
+	scenarioOffset = 444
+	headerOffset   = 2044
 )
 
 type Researcher struct {
@@ -30,7 +31,7 @@ func (o Researcher) IsMap() error {
 
 	raw := make([]byte, 4)
 
-	_, err = m.ReadAt(raw, headerLocation)
+	_, err = m.ReadAt(raw, headerOffset)
 	if err != nil {
 		return err
 	}
@@ -44,6 +45,35 @@ func (o Researcher) IsMap() error {
 	}
 
 	return nil
+}
+
+func (o Researcher) Scenario() (string, error) {
+	m, err := os.Open(o.filePath)
+	if err != nil {
+		return "", err
+	}
+	defer m.Close()
+
+	raw := make([]byte, 64)
+
+	_, err = m.ReadAt(raw, scenarioOffset)
+	if err != nil {
+		return "", err
+	}
+
+	var chars []int32
+
+	for _, r := range raw {
+		c := int32(r)
+
+		if c == ' ' {
+			break
+		}
+
+		chars = append(chars, c)
+	}
+
+	return string(chars), nil
 }
 
 func NewResearcher(filePath string) (larboard.Researcher, error) {

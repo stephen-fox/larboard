@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -13,6 +14,7 @@ import (
 const (
 	mapFilePathArg = "m"
 	isMapArg       = "is-map"
+	getScenarioArg = "get-scenario"
 
 	helpArg = "h"
 )
@@ -20,6 +22,7 @@ const (
 var (
 	mapFilePath = flag.String(mapFilePathArg, "", "The path to the map file")
 	isMapValid  = flag.Bool(isMapArg, false, "Verify that the map file is actually a Halo map")
+	getScenario = flag.Bool(getScenarioArg, false, "Get the map's scenario")
 
 	printHelp = flag.Bool(helpArg, false, "Print this help page")
 )
@@ -49,6 +52,15 @@ func main() {
 		}
 
 		log.Println("Yep, it's a map")
+	}
+
+	if *getScenario {
+		scenario, err := h2Researcher.Scenario()
+		if err != nil {
+			fatal("Failed to get map's scenario", err)
+		}
+
+		fmt.Println(scenario)
 	}
 
 }
