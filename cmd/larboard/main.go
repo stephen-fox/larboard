@@ -14,6 +14,7 @@ import (
 const (
 	mapFilePathArg = "m"
 	isMapArg       = "is-map"
+	getNameArg     = "get-name"
 	getScenarioArg = "get-scenario"
 
 	helpArg = "h"
@@ -21,7 +22,9 @@ const (
 
 var (
 	mapFilePath = flag.String(mapFilePathArg, "", "The path to the map file")
+
 	isMapValid  = flag.Bool(isMapArg, false, "Verify that the map file is actually a Halo map")
+	getName     = flag.Bool(getNameArg, false, "Get the map's name")
 	getScenario = flag.Bool(getScenarioArg, false, "Get the map's scenario")
 
 	printHelp = flag.Bool(helpArg, false, "Print this help page")
@@ -52,6 +55,15 @@ func main() {
 		}
 
 		log.Println("Yep, it's a map")
+	}
+
+	if *getName {
+		name, err := h2Researcher.Name()
+		if err != nil {
+			fatal("Failed to get map's name", err)
+		}
+
+		fmt.Println(name)
 	}
 
 	if *getScenario {
