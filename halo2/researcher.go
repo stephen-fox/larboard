@@ -13,18 +13,18 @@ const (
 	headerLocation = 2044
 )
 
-type MapDescriber struct {
+type Researcher struct {
 	filePath string
 }
 
-func (o MapDescriber) IsHalo2() (bool, error) {
+func (o Researcher) IsHalo2() error {
 	return o.IsMap()
 }
 
-func (o MapDescriber) IsMap() (bool, error) {
+func (o Researcher) IsMap() error {
 	m, err := os.Open(o.filePath)
 	if err != nil {
-		return false, err
+		return err
 	}
 	defer m.Close()
 
@@ -32,31 +32,31 @@ func (o MapDescriber) IsMap() (bool, error) {
 
 	_, err = m.ReadAt(raw, headerLocation)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	toof := []int32{'t', 'o', 'o', 'f'}
 
 	for i, c := range raw {
 		if int32(c) != toof[i] {
-			return false, errors.New(ErrorValidatingMapHeader)
+			return errors.New(ErrorValidatingMapHeader)
 		}
 	}
 
-	return true, nil
+	return nil
 }
 
-func NewMap(filePath string) (larboard.MapDescriber, error) {
+func NewResearcher(filePath string) (larboard.Researcher, error) {
 	info, err := os.Stat(filePath)
 	if err != nil {
-		return MapDescriber{}, err
+		return Researcher{}, err
 	}
 
 	if info.IsDir() {
-		return MapDescriber{}, errors.New("The specified file is a directory")
+		return Researcher{}, errors.New("The specified file is a directory")
 	}
 
-	return MapDescriber{
+	return Researcher{
 		filePath: filePath,
 	}, nil
 }

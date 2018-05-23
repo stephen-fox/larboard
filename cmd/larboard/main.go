@@ -34,25 +34,21 @@ func main() {
 
 	err := validateMap()
 	if err != nil {
-		fatal(err)
+		fatal("", err)
 	}
 
-	h2MapDescriber, err := halo2.NewMap(*mapFilePath)
+	h2Researcher, err := halo2.NewResearcher(*mapFilePath)
 	if err != nil {
-		fatal(err)
+		fatal("Failed to load map researcher", err)
 	}
 
 	if *isMapValid {
-		isMap, err := h2MapDescriber.IsMap()
+		err := h2Researcher.IsMap()
 		if err != nil {
-			fatal(err)
+			fatal("The specified file is not a Halo map", err)
 		}
 
-		if isMap {
-			log.Println("Yep, it's a map")
-		} else {
-			log.Println("Nope, it's not a map")
-		}
+		log.Println("Yep, it's a map")
 	}
 
 }
@@ -66,6 +62,10 @@ func validateMap() error {
 	return nil
 }
 
-func fatal(err error) {
-	log.Fatal("ERROR - ", err.Error())
+func fatal(whatHappened string, err error) {
+	if whatHappened == "" {
+		log.Fatal("[ERROR] ", err.Error())
+	}
+
+	log.Fatal("[ERROR] - ", whatHappened, " - ", err.Error())
 }
