@@ -6,4 +6,5 @@ type Researcher interface {
 	Name() (string, error)
 	Scenario() (string, error)
 	Signature() (string, error)
+	SignatureRaw() ([]byte, error)
 }

@@ -1,6 +1,7 @@
 package halo2
 
 import (
+	"encoding/hex"
 	"errors"
 	"os"
 
@@ -67,12 +68,28 @@ func (o Researcher) Scenario() (string, error) {
 }
 
 func (o Researcher) Signature() (string, error) {
-	fc := larboard.FileChunk{
-		Offset:   signatureOffset,
-		MaxSize:  4,
+	raw, err := o.SignatureRaw()
+	if err != nil {
+		return "", err
 	}
 
-	return fc.String(o.m)
+	return hex.EncodeToString(raw), nil
+}
+
+func (o Researcher) SignatureRaw() ([]byte, error) {
+	sigSize := 4
+
+	fc := larboard.FileChunk{
+		Offset:  signatureOffset,
+		MaxSize: sigSize,
+	}
+
+	raw, err := fc.Bytes(o.m)
+	if err != nil {
+		return raw, err
+	}
+
+	return raw, nil
 }
 
 func NewResearcher(m *os.File) (larboard.Researcher, error) {
