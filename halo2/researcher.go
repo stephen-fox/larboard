@@ -10,13 +10,14 @@ import (
 const (
 	ErrorValidatingMapHeader = "Failed to validate map header"
 
-	mapNameOffset  = 408
-	scenarioOffset = 444
-	headerOffset   = 2044
+	mapNameOffset   = 408
+	scenarioOffset  = 444
+	signatureOffset = 720
+	headerOffset    = 2044
 )
 
 type Researcher struct {
-	filePath string
+	m *os.File
 }
 
 func (o Researcher) IsHalo2() error {
@@ -24,15 +25,12 @@ func (o Researcher) IsHalo2() error {
 }
 
 func (o Researcher) IsMap() error {
-	m, err := os.Open(o.filePath)
-	if err != nil {
-		return err
+	fc := larboard.FileChunk{
+		Offset:  headerOffset,
+		MaxSize: 4,
 	}
-	defer m.Close()
 
-	raw := make([]byte, 4)
-
-	_, err = m.ReadAt(raw, headerOffset)
+	raw, err := fc.Bytes(o.m)
 	if err != nil {
 		return err
 	}
@@ -49,38 +47,36 @@ func (o Researcher) IsMap() error {
 }
 
 func (o Researcher) Name() (string, error) {
-	fcs := larboard.FileChunkStringer{
-		FilePath: o.filePath,
+	fc := larboard.FileChunk{
 		Offset:   mapNameOffset,
 		MaxSize:  35,
 		DoneChar: ' ',
 	}
 
-	return fcs.Read()
+	return fc.String(o.m)
 }
 
 func (o Researcher) Scenario() (string, error) {
-	fcs := larboard.FileChunkStringer{
-		FilePath: o.filePath,
+	fc := larboard.FileChunk{
 		Offset:   scenarioOffset,
 		MaxSize:  64,
 		DoneChar: ' ',
 	}
 
-	return fcs.Read()
+	return fc.String(o.m)
 }
 
-func NewResearcher(filePath string) (larboard.Researcher, error) {
-	info, err := os.Stat(filePath)
-	if err != nil {
-		return Researcher{}, err
+func (o Researcher) Signature() (string, error) {
+	fc := larboard.FileChunk{
+		Offset:   signatureOffset,
+		MaxSize:  4,
 	}
 
-	if info.IsDir() {
-		return Researcher{}, errors.New("The specified file is a directory")
-	}
+	return fc.String(o.m)
+}
 
+func NewResearcher(m *os.File) (larboard.Researcher, error) {
 	return Researcher{
-		filePath: filePath,
+		m: m,
 	}, nil
 }

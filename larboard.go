@@ -5,4 +5,5 @@ type Researcher interface {
 	IsMap() error
 	Name() (string, error)
 	Scenario() (string, error)
+	Signature() (string, error)
 }

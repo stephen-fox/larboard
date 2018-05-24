@@ -12,10 +12,11 @@ import (
 )
 
 const (
-	mapFilePathArg = "m"
-	isMapArg       = "is-map"
-	getNameArg     = "get-name"
-	getScenarioArg = "get-scenario"
+	mapFilePathArg  = "m"
+	isMapArg        = "is-map"
+	getNameArg      = "get-name"
+	getScenarioArg  = "get-scenario"
+	getSignatureArg = "get-signature"
 
 	helpArg = "h"
 )
@@ -23,9 +24,10 @@ const (
 var (
 	mapFilePath = flag.String(mapFilePathArg, "", "The path to the map file")
 
-	isMapValid  = flag.Bool(isMapArg, false, "Verify that the map file is actually a Halo map")
-	getName     = flag.Bool(getNameArg, false, "Get the map's name")
-	getScenario = flag.Bool(getScenarioArg, false, "Get the map's scenario")
+	isMapValid   = flag.Bool(isMapArg, false, "Verify that the map file is actually a Halo map")
+	getName      = flag.Bool(getNameArg, false, "Get the map's name")
+	getScenario  = flag.Bool(getScenarioArg, false, "Get the map's scenario")
+	getSignature = flag.Bool(getSignatureArg, false, "Get the map's signature")
 
 	printHelp = flag.Bool(helpArg, false, "Print this help page")
 )
@@ -43,7 +45,12 @@ func main() {
 		fatal("", err)
 	}
 
-	h2Researcher, err := halo2.NewResearcher(*mapFilePath)
+	m, err := os.Open(*mapFilePath)
+	if err != nil {
+		fatal("", err)
+	}
+
+	h2Researcher, err := halo2.NewResearcher(m)
 	if err != nil {
 		fatal("Failed to load map researcher", err)
 	}
@@ -75,6 +82,14 @@ func main() {
 		fmt.Println(scenario)
 	}
 
+	if *getSignature {
+		signature, err := h2Researcher.Signature()
+		if err != nil {
+			fatal("Failed to get map's signature", err)
+		}
+
+		fmt.Println(signature)
+	}
 }
 
 func validateMap() error {

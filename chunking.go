@@ -4,27 +4,14 @@ import (
 	"os"
 )
 
-type FileChunkStringer struct {
-	FilePath string
+type FileChunk struct {
 	Offset   int64
 	MaxSize  int
 	DoneChar int32
 }
 
-func (o FileChunkStringer) Read() (string, error) {
-	f, err := os.Open(o.FilePath)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-
-	return o.ReadOpen(f)
-}
-
-func (o FileChunkStringer) ReadOpen(f *os.File) (string, error) {
-	raw := make([]byte, o.MaxSize)
-
-	_, err := f.ReadAt(raw, o.Offset)
+func (o FileChunk) String(f *os.File) (string, error) {
+	raw, err := o.Bytes(f)
 	if err != nil {
 		return "", err
 	}
@@ -42,4 +29,15 @@ func (o FileChunkStringer) ReadOpen(f *os.File) (string, error) {
 	}
 
 	return string(chars), nil
+}
+
+func (o FileChunk) Bytes(f *os.File) ([]byte, error) {
+	raw := make([]byte, o.MaxSize)
+
+	_, err := f.ReadAt(raw, o.Offset)
+	if err != nil {
+		return raw, err
+	}
+
+	return raw, nil
 }
