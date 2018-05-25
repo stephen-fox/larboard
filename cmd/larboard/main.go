@@ -1,22 +1,22 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"strings"
 
+	"github.com/stephen-fox/larboard/api"
 	"github.com/stephen-fox/larboard/halo2"
+	"github.com/stephen-fox/larboard/research"
 )
 
 const (
 	mapFilePathArg  = "m"
-	isMapArg        = "is-map"
-	getNameArg      = "get-name"
-	getScenarioArg  = "get-scenario"
-	getSignatureArg = "get-signature"
+
+	researchActionsArg = "R"
+	doResearchArg      = "r"
 
 	helpArg = "h"
 )
@@ -24,12 +24,17 @@ const (
 var (
 	mapFilePath = flag.String(mapFilePathArg, "", "The path to the map file")
 
-	isMapValid   = flag.Bool(isMapArg, false, "Verify that the map file is actually a Halo map")
-	getName      = flag.Bool(getNameArg, false, "Get the map's name")
-	getScenario  = flag.Bool(getScenarioArg, false, "Get the map's scenario")
-	getSignature = flag.Bool(getSignatureArg, false, "Get the map's signature")
+	doResearch      = flag.String(doResearchArg, "", "Execute a research action")
+	researchActions = flag.Bool(researchActionsArg, false, "Print the research actions")
 
 	printHelp = flag.Bool(helpArg, false, "Print this help page")
+
+	researchActionsToFuncs = map[string]func(data research.Data) api.Result{
+		"valid":     research.IsMapValid,
+		"name":      research.MapName,
+		"scenario":  research.Scenario,
+		"signature": research.Signature,
+	}
 )
 
 func main() {
@@ -40,71 +45,50 @@ func main() {
 		os.Exit(0)
 	}
 
-	err := validateMap()
-	if err != nil {
-		fatal("", err)
-	}
+	if *researchActions {
+		fmt.Println("Available research actions:")
 
-	m, err := os.Open(*mapFilePath)
-	if err != nil {
-		fatal("", err)
-	}
-
-	h2Researcher, err := halo2.NewResearcher(m)
-	if err != nil {
-		fatal("Failed to load map researcher", err)
-	}
-
-	if *isMapValid {
-		err := h2Researcher.IsMap()
-		if err != nil {
-			fatal("The specified file is not a Halo map", err)
+		for action := range researchActionsToFuncs {
+			fmt.Println("    " + action)
 		}
 
-		log.Println("Yep, it's a map")
+		os.Exit(0)
 	}
 
-	if *getName {
-		name, err := h2Researcher.Name()
-		if err != nil {
-			fatal("Failed to get map's name", err)
-		}
-
-		fmt.Println(name)
-	}
-
-	if *getScenario {
-		scenario, err := h2Researcher.Scenario()
-		if err != nil {
-			fatal("Failed to get map's scenario", err)
-		}
-
-		fmt.Println(scenario)
-	}
-
-	if *getSignature {
-		signature, err := h2Researcher.Signature()
-		if err != nil {
-			fatal("Failed to get map's signature", err)
-		}
-
-		fmt.Println(signature)
-	}
-}
-
-func validateMap() error {
 	if len(strings.TrimSpace(*mapFilePath)) == 0 {
-		return errors.New("Please specify the path to the map file using '-" +
-			mapFilePathArg + " /path/to/map/file'")
+		fatal("Please specify a map file using '-" + mapFilePathArg + " /path/to/map/file'")
 	}
 
-	return nil
+	if len(strings.TrimSpace(*doResearch)) > 0 {
+		f, ok := researchActionsToFuncs[*doResearch]
+		if !ok {
+			fatal("The specified research action does not exist - '" + *doResearch + "'")
+		}
+
+		m, err := os.Open(*mapFilePath)
+		if err != nil {
+			fatal("Failed to open map file - " + err.Error())
+		}
+		defer m.Close()
+
+		h2Researcher, err := halo2.NewResearcher(m)
+		if err != nil {
+			fatal("Failed to load map researcher" + err.Error())
+		}
+
+		data := research.Data{
+			Researcher: h2Researcher,
+		}
+
+		result := f(data)
+		if result.IsError() {
+			fatal(result.FormatOutput(api.SingleRunCli))
+		}
+
+		fmt.Println(result.FormatOutput(api.SingleRunCli))
+	}
 }
 
-func fatal(whatHappened string, err error) {
-	if whatHappened == "" {
-		log.Fatal("[ERROR] ", err.Error())
-	}
-
-	log.Fatal("[ERROR] - ", whatHappened, " - ", err.Error())
+func fatal(reason string) {
+	log.Fatal("[ERROR] - ", reason)
 }
