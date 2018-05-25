@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/stephen-fox/larboard"
+	"github.com/stephen-fox/larboard/chunking"
 )
 
 const (
@@ -26,7 +27,7 @@ func (o Researcher) IsHalo2() error {
 }
 
 func (o Researcher) IsMap() error {
-	fc := larboard.FileChunk{
+	fc := chunking.FileChunk{
 		Offset:  headerOffset,
 		MaxSize: 4,
 	}
@@ -48,7 +49,7 @@ func (o Researcher) IsMap() error {
 }
 
 func (o Researcher) Name() (string, error) {
-	fc := larboard.FileChunk{
+	fc := chunking.FileChunk{
 		Offset:   mapNameOffset,
 		MaxSize:  35,
 		DoneChar: ' ',
@@ -58,7 +59,7 @@ func (o Researcher) Name() (string, error) {
 }
 
 func (o Researcher) Scenario() (string, error) {
-	fc := larboard.FileChunk{
+	fc := chunking.FileChunk{
 		Offset:   scenarioOffset,
 		MaxSize:  64,
 		DoneChar: ' ',
@@ -79,7 +80,7 @@ func (o Researcher) Signature() (string, error) {
 func (o Researcher) SignatureRaw() ([]byte, error) {
 	sigSize := 4
 
-	fc := larboard.FileChunk{
+	fc := chunking.FileChunk{
 		Offset:  signatureOffset,
 		MaxSize: sigSize,
 	}

@@ -1,4 +1,4 @@
-package larboard
+package chunking
 
 import (
 	"os"
