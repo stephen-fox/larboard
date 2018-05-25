@@ -11,11 +11,6 @@ import (
 
 const (
 	ErrorValidatingMapHeader = "Failed to validate map header"
-
-	mapNameOffset   = 408
-	scenarioOffset  = 444
-	signatureOffset = 720
-	headerOffset    = 2044
 )
 
 type Researcher struct {
