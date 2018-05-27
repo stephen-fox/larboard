@@ -1,5 +1,9 @@
 package larboard
 
+import (
+	"os"
+)
+
 type Researcher interface {
 	IsHalo2() error
 	IsMap() error
@@ -7,4 +11,8 @@ type Researcher interface {
 	Scenario() (string, error)
 	Signature() (string, error)
 	SignatureRaw() ([]byte, error)
+}
+
+type Cartographer interface {
+	Sign(mapF *os.File) (string, error)
 }

@@ -7,9 +7,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/stephen-fox/larboard/api"
 	"github.com/stephen-fox/larboard/halo2"
-	"github.com/stephen-fox/larboard/research"
+	"github.com/stephen-fox/larboard/ipc"
+	"github.com/stephen-fox/larboard/ipc/research"
+	"github.com/stephen-fox/larboard/ipc/cartography"
+	"github.com/stephen-fox/larboard/mapio"
 )
 
 const (
@@ -29,7 +31,11 @@ var (
 
 	printHelp = flag.Bool(helpArg, false, "Print this help page")
 
-	researchActionsToFuncs = map[string]func(data research.Data) api.Result{
+	cartographerActionsToFuncs = map[string]func(data ipc.Input) ipc.Result{
+		"sign": cartography.Sign,
+	}
+
+	researchActionsToFuncs = map[string]func(data ipc.Input) ipc.Result{
 		"valid":     research.IsMapValid,
 		"name":      research.MapName,
 		"scenario":  research.Scenario,
@@ -65,13 +71,12 @@ func main() {
 			fatal("The specified research action does not exist - '" + *doResearch + "'")
 		}
 
-		m, err := os.Open(*mapFilePath)
+		hmap, err := mapio.NewMap(*mapFilePath)
 		if err != nil {
-			fatal("Failed to open map file - " + err.Error())
+			fatal(err.Error())
 		}
-		defer m.Close()
 
-		h2Researcher, err := halo2.NewResearcher(m)
+		h2Researcher, err := halo2.NewResearcher(hmap)
 		if err != nil {
 			fatal("Failed to load map researcher" + err.Error())
 		}
@@ -82,10 +87,10 @@ func main() {
 
 		result := f(data)
 		if result.IsError() {
-			fatal(result.FormatOutput(api.SingleRunCli))
+			fatal(result.FormatOutput(ipc.SingleRunCli))
 		}
 
-		fmt.Println(result.FormatOutput(api.SingleRunCli))
+		fmt.Println(result.FormatOutput(ipc.SingleRunCli))
 	}
 }
 

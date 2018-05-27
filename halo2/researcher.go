@@ -3,10 +3,9 @@ package halo2
 import (
 	"encoding/hex"
 	"errors"
-	"os"
 
 	"github.com/stephen-fox/larboard"
-	"github.com/stephen-fox/larboard/chunking"
+	"github.com/stephen-fox/larboard/mapio"
 )
 
 const (
@@ -14,7 +13,7 @@ const (
 )
 
 type Researcher struct {
-	m *os.File
+	hmap mapio.Map
 }
 
 func (o Researcher) IsHalo2() error {
@@ -22,19 +21,19 @@ func (o Researcher) IsHalo2() error {
 }
 
 func (o Researcher) IsMap() error {
-	fc := chunking.FileChunk{
+	readOptions := mapio.ReadOptions{
 		Offset:  headerOffset,
 		MaxSize: 4,
 	}
 
-	raw, err := fc.Bytes(o.m)
+	chunk, err := o.hmap.Read(readOptions)
 	if err != nil {
 		return err
 	}
 
 	toof := []int32{'t', 'o', 'o', 'f'}
 
-	for i, c := range raw {
+	for i, c := range chunk.Bytes() {
 		if int32(c) != toof[i] {
 			return errors.New(ErrorValidatingMapHeader)
 		}
@@ -44,23 +43,33 @@ func (o Researcher) IsMap() error {
 }
 
 func (o Researcher) Name() (string, error) {
-	fc := chunking.FileChunk{
+	readOptions := mapio.ReadOptions{
 		Offset:   mapNameOffset,
 		MaxSize:  35,
 		DoneChar: ' ',
 	}
 
-	return fc.String(o.m)
+	chunk, err := o.hmap.Read(readOptions)
+	if err != nil {
+		return "", err
+	}
+
+	return chunk.String(), nil
 }
 
 func (o Researcher) Scenario() (string, error) {
-	fc := chunking.FileChunk{
+	readOptions := mapio.ReadOptions{
 		Offset:   scenarioOffset,
 		MaxSize:  64,
 		DoneChar: ' ',
 	}
 
-	return fc.String(o.m)
+	chunk, err := o.hmap.Read(readOptions)
+	if err != nil {
+		return "", err
+	}
+
+	return chunk.String(), nil
 }
 
 func (o Researcher) Signature() (string, error) {
@@ -75,21 +84,21 @@ func (o Researcher) Signature() (string, error) {
 func (o Researcher) SignatureRaw() ([]byte, error) {
 	sigSize := 4
 
-	fc := chunking.FileChunk{
+	readOptions := mapio.ReadOptions{
 		Offset:  signatureOffset,
 		MaxSize: sigSize,
 	}
 
-	raw, err := fc.Bytes(o.m)
+	chunk, err := o.hmap.Read(readOptions)
 	if err != nil {
-		return raw, err
+		return []byte{}, err
 	}
 
-	return raw, nil
+	return chunk.Bytes(), nil
 }
 
-func NewResearcher(m *os.File) (larboard.Researcher, error) {
+func NewResearcher(hmap mapio.Map) (larboard.Researcher, error) {
 	return Researcher{
-		m: m,
+		hmap: hmap,
 	}, nil
 }

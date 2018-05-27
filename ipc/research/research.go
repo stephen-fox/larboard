@@ -1,75 +1,70 @@
 package research
 
 import (
-	"github.com/stephen-fox/larboard"
-	"github.com/stephen-fox/larboard/api"
+	"github.com/stephen-fox/larboard/ipc/api"
 )
 
-type Data struct {
-	Id         string
-	Researcher larboard.Researcher
-}
-
-func IsMapValid(data Data) api.Result {
-	err := data.Researcher.IsMap()
+func IsMapValid(input api.Input) api.Result {
+	err := input.Researcher.IsMap()
 	if err != nil {
 		return api.Result{
 			Error:   err.Error(),
 			Message: "The specified file is not a Halo map",
-			Id:      data.Id,
+			Id:      input.Id,
 		}
 	}
 
 	return api.Result{
-		Id:      data.Id,
+		Id:      input.Id,
 		Message: "This is a valid map",
+		Data:    "true",
 	}
 }
 
-func MapName(data Data) api.Result {
-	name, err := data.Researcher.Name()
+func MapName(input api.Input) api.Result {
+	name, err := input.Researcher.Name()
 	if err != nil {
 		return api.Result{
 			Error:   err.Error(),
 			Message: "Failed to get map name",
-			Id:      data.Id,
+			Id:      input.Id,
 		}
 	}
 
 	return api.Result{
-		Id:   data.Id,
+		Id:   input.Id,
 		Data: name,
 	}
 }
 
-func Scenario(data Data) api.Result {
-	scenario, err := data.Researcher.Scenario()
+func Scenario(input api.Input) api.Result {
+	scenario, err := input.Researcher.Scenario()
 	if err != nil {
 		return api.Result{
 			Error:   err.Error(),
 			Message: "Failed to get map scenario",
-			Id:      data.Id,
+			Id:      input.Id,
 		}
 	}
 
 	return api.Result{
-		Id:   data.Id,
+		Id:   input.Id,
 		Data: scenario,
 	}
 }
 
-func Signature(data Data) api.Result {
-	signature, err := data.Researcher.Signature()
+func Signature(input api.Input) api.Result {
+	signature, err := input.Researcher.Signature()
 	if err != nil {
 		return api.Result{
 			Error:   err.Error(),
 			Message: "Failed to get map's signature",
-			Id:      data.Id,
+			Id:      input.Id,
 		}
 	}
 
 	return api.Result{
-		Id:   data.Id,
+		Id:   input.Id,
 		Data: signature,
 	}
 }
