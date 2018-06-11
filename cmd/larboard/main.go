@@ -1,92 +1,133 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"strings"
 
-	"github.com/stephen-fox/larboard/api"
-	"github.com/stephen-fox/larboard/halo2"
-	"github.com/stephen-fox/larboard/research"
+	"github.com/stephen-fox/larboard"
+	"github.com/stephen-fox/larboard/ipc"
 )
 
 const (
-	mapFilePathArg  = "m"
-
-	researchActionsArg = "R"
-	doResearchArg      = "r"
-
-	helpArg = "h"
+	defaultHalo2MapFileArg = "halo2"
+	humanReadableOutputArg = "human"
+	helpArg                = "h"
 )
 
 var (
-	mapFilePath = flag.String(mapFilePathArg, "", "The path to the map file")
-
-	doResearch      = flag.String(doResearchArg, "", "Execute a research action")
-	researchActions = flag.Bool(researchActionsArg, false, "Print the research actions")
+	defaultHalo2MapFile = flag.String(defaultHalo2MapFileArg, "", "The Halo 2 map to open by default")
+	humanReadableOutput = flag.Bool(humanReadableOutputArg, false, "Output in human readable format")
 
 	printHelp = flag.Bool(helpArg, false, "Print this help page")
-
-	researchActionsToFuncs = map[string]func(data research.Data) api.Result{
-		"valid":     research.IsMapValid,
-		"name":      research.MapName,
-		"scenario":  research.Scenario,
-		"signature": research.Signature,
-	}
 )
 
 func main() {
 	flag.Parse()
 
-	if len(os.Args) <= 1 || *printHelp {
+	if *printHelp {
 		flag.PrintDefaults()
 		os.Exit(0)
 	}
 
-	if *researchActions {
-		fmt.Println("Available research actions:")
-
-		for action := range researchActionsToFuncs {
-			fmt.Println("    " + action)
-		}
-
-		os.Exit(0)
+	ipcManager, err := ipc.NewManager()
+	if err != nil {
+		fatal(err.Error())
 	}
 
-	if len(strings.TrimSpace(*mapFilePath)) == 0 {
-		fatal("Please specify a map file using '-" + mapFilePathArg + " /path/to/map/file'")
-	}
-
-	if len(strings.TrimSpace(*doResearch)) > 0 {
-		f, ok := researchActionsToFuncs[*doResearch]
-		if !ok {
-			fatal("The specified research action does not exist - '" + *doResearch + "'")
+	if len(strings.TrimSpace(*defaultHalo2MapFile)) > 0 {
+		options := ipc.IoOptions{
+			HumanReadableOutput: *humanReadableOutput,
+			Source:              ipc.Cli,
 		}
 
-		m, err := os.Open(*mapFilePath)
+		details := ipc.InstanceDetails{
+			Game: ipc.Halo2,
+			Id:   "default",
+		}
+
+		err := setDefaultHaloMap(ipcManager, options, details)
 		if err != nil {
-			fatal("Failed to open map file - " + err.Error())
+			fatal(err.Error())
 		}
-		defer m.Close()
-
-		h2Researcher, err := halo2.NewResearcher(m)
-		if err != nil {
-			fatal("Failed to load map researcher" + err.Error())
-		}
-
-		data := research.Data{
-			Researcher: h2Researcher,
-		}
-
-		result := f(data)
-		if result.IsError() {
-			fatal(result.FormatOutput(api.SingleRunCli))
-		}
-
-		fmt.Println(result.FormatOutput(api.SingleRunCli))
 	}
+
+	inputs := make(chan string)
+	results := make(chan ipc.Result)
+	stdout := make(chan string)
+
+	go func() {
+		for {
+			input, err := getUserInput()
+			if err != nil {
+				fatal(err.Error())
+			}
+
+			inputs <- input
+		}
+	}()
+
+	go func() {
+		for {
+			output := <-results
+			stdout <- output.FormatOutput()
+		}
+	}()
+
+	go func() {
+		for {
+			fmt.Println(<-stdout)
+		}
+	}()
+
+	ioOptions := ipc.IoOptions{
+		Source:              ipc.Cli,
+		HumanReadableOutput: *humanReadableOutput,
+	}
+
+	err = ipcManager.BlockAndParseInput(ioOptions, inputs, results)
+	if err != nil {
+		fatal(err.Error())
+	}
+}
+
+func setDefaultHaloMap(manager ipc.Manager, options ipc.IoOptions, details ipc.InstanceDetails) error {
+	i, err := ipc.NewInstance(options, details)
+	if err != nil {
+		return err
+	}
+
+	err = manager.AddInstance(i)
+	if err != nil {
+		return err
+	}
+
+	haloMap := larboard.HaloMap{
+		FilePath: *defaultHalo2MapFile,
+	}
+
+	err = i.Cartographer.SetMap(haloMap)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getUserInput() (string, error) {
+	reader := bufio.NewReader(os.Stdin)
+
+	readD := '\n'
+
+	input, err := reader.ReadString(byte(readD))
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSuffix(input, string(readD)), nil
 }
 
 func fatal(reason string) {
