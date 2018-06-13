@@ -13,13 +13,15 @@ import (
 )
 
 const (
-	defaultHalo2MapFileArg = "halo2"
+	defaultInstanceGameArg = "g"
+	defaultInstanceMapArg  = "d"
 	humanReadableOutputArg = "human"
 	helpArg                = "h"
 )
 
 var (
-	defaultHalo2MapFile = flag.String(defaultHalo2MapFileArg, "", "The Halo 2 map to open by default")
+	defaultInstanceGame = flag.String(defaultInstanceGameArg, string(ipc.Halo2), "The game type to use for the default instance")
+	defaultInstanceMap  = flag.String(defaultInstanceMapArg, "", "The map file to open for the default instance")
 	humanReadableOutput = flag.Bool(humanReadableOutputArg, false, "Output in human readable format")
 
 	printHelp = flag.Bool(helpArg, false, "Print this help page")
@@ -38,17 +40,21 @@ func main() {
 		fatal(err.Error())
 	}
 
-	if len(strings.TrimSpace(*defaultHalo2MapFile)) > 0 {
+	if len(strings.TrimSpace(*defaultInstanceMap)) > 0 {
+		if len(strings.TrimSpace(*defaultInstanceGame)) == 0 {
+			fatal("Please specify a default instance type")
+		}
+
 		options := ipc.IoOptions{
 			HumanReadableOutput: *humanReadableOutput,
 			Source:              ipc.Cli,
 		}
 
 		details := ipc.InstanceDetails{
-			Game: ipc.Halo2,
+			Game: ipc.Game(*defaultInstanceGame),
 			Id:   "default",
 			InitialMap: larboard.HaloMap{
-				FilePath: *defaultHalo2MapFile,
+				FilePath: *defaultInstanceMap,
 			},
 		}
 
