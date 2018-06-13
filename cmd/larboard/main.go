@@ -47,6 +47,9 @@ func main() {
 		details := ipc.InstanceDetails{
 			Game: ipc.Halo2,
 			Id:   "default",
+			InitialMap: larboard.HaloMap{
+				FilePath: *defaultHalo2MapFile,
+			},
 		}
 
 		err := setDefaultHaloMap(ipcManager, options, details)
@@ -101,15 +104,6 @@ func setDefaultHaloMap(manager ipc.Manager, options ipc.IoOptions, details ipc.I
 	}
 
 	err = manager.AddInstance(i)
-	if err != nil {
-		return err
-	}
-
-	haloMap := larboard.HaloMap{
-		FilePath: *defaultHalo2MapFile,
-	}
-
-	err = i.Cartographer.SetMap(haloMap)
 	if err != nil {
 		return err
 	}

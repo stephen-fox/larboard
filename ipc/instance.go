@@ -16,8 +16,9 @@ const (
 type Game string
 
 type InstanceDetails struct {
-	Game Game   `json:"game"`
-	Id   string `json:"id"`
+	Game       Game             `json:"game"`
+	Id         string           `json:"id"`
+	InitialMap larboard.HaloMap `json:"initial_map"`
 }
 
 type Instance struct {
@@ -70,22 +71,32 @@ func NewInstance(options IoOptions, details InstanceDetails) (*Instance, error) 
 		return &Instance{}, errors.New("Please specify an instance ID")
 	}
 
-	instance := &Instance{
-		IoOptions:  options,
-		Details:    details,
-	}
+	var c larboard.Cartographer
 
 	switch details.Game {
 	case Halo2:
-		c, err := halo2.NewCartographer()
+		cart, err := halo2.NewCartographer()
 		if err != nil {
 			return &Instance{}, err
 		}
 
-		instance.Cartographer = c
-
-		return instance, nil
+		c = cart
+	default:
+		return &Instance{}, errors.New("Unknown game: '" + string(details.Game) + "'")
 	}
 
-	return &Instance{}, errors.New("Unknown game: '" + string(details.Game) + "'")
+	instance := &Instance{
+		IoOptions:    options,
+		Details:      details,
+		Cartographer: c,
+	}
+
+	if len(details.InitialMap.FilePath) > 0 {
+		err := instance.Cartographer.SetMap(details.InitialMap)
+		if err != nil {
+			return &Instance{}, err
+		}
+	}
+
+	return instance, nil
 }
