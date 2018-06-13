@@ -15,9 +15,9 @@ const (
 var (
 	stringsToCommandFuncs = map[string]commandFunc{
 		newCommand:  newI,
-		"set_map":   setMap,
-		"is_halo2":  isHalo2,
-		"is_map":    isMap,
+		"setmap":    setMap,
+		"ishalo2":   isHalo2,
+		"ismap":     isMap,
 		"name":      name,
 		"scenario":  scenario,
 		"signature": signature,
