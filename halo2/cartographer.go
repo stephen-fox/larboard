@@ -13,11 +13,11 @@ const (
 )
 
 type Cartographer struct {
-	mapper mapio.Mapper
+	HaloMap larboard.HaloMap
 }
 
 func (o *Cartographer) SetMap(haloMap larboard.HaloMap) error {
-	o.mapper.FilePath = haloMap.FilePath
+	o.HaloMap = haloMap
 
 	return nil
 }
@@ -28,11 +28,11 @@ func (o Cartographer) IsHalo2() error {
 
 func (o Cartographer) IsMap() error {
 	readOptions := mapio.ReadOptions{
-		Offset:  headerOffset,
-		MaxSize: 4,
+		Offset: headerOffset,
+		Size:   4,
 	}
 
-	chunk, err := o.mapper.Read(readOptions)
+	chunk, err := mapio.AtomicRead(o.HaloMap.FilePath, readOptions)
 	if err != nil {
 		return err
 	}
@@ -50,12 +50,12 @@ func (o Cartographer) IsMap() error {
 
 func (o Cartographer) Name() (string, error) {
 	readOptions := mapio.ReadOptions{
-		Offset:  mapNameOffset,
-		MaxSize: 35,
-		Stop:    true,
+		Offset: mapNameOffset,
+		Size:   35,
+		Until:  true,
 	}
 
-	chunk, err := o.mapper.Read(readOptions)
+	chunk, err := mapio.AtomicRead(o.HaloMap.FilePath, readOptions)
 	if err != nil {
 		return "", err
 	}
@@ -65,12 +65,12 @@ func (o Cartographer) Name() (string, error) {
 
 func (o Cartographer) Scenario() (string, error) {
 	readOptions := mapio.ReadOptions{
-		Offset:  scenarioOffset,
-		MaxSize: 64,
-		Stop:    true,
+		Offset: scenarioOffset,
+		Size:   64,
+		Until:  true,
 	}
 
-	chunk, err := o.mapper.Read(readOptions)
+	chunk, err := mapio.AtomicRead(o.HaloMap.FilePath, readOptions)
 	if err != nil {
 		return "", err
 	}
@@ -80,11 +80,11 @@ func (o Cartographer) Scenario() (string, error) {
 
 func (o Cartographer) Signature() (string, error) {
 	readOptions := mapio.ReadOptions{
-		Offset:  signatureOffset,
-		MaxSize: 4,
+		Offset: signatureOffset,
+		Size:   4,
 	}
 
-	chunk, err := o.mapper.Read(readOptions)
+	chunk, err := mapio.AtomicRead(o.HaloMap.FilePath, readOptions)
 	if err != nil {
 		return "", err
 	}
@@ -93,7 +93,53 @@ func (o Cartographer) Signature() (string, error) {
 }
 
 func (o Cartographer) Sign() (string, error) {
-	return "", errors.New("Not implmented yet")
+	openOptions := mapio.OpenOptions{
+		AllowWrite: true,
+	}
+
+	f, err := mapio.Open(o.HaloMap.FilePath, openOptions)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	currentOffset := int64(bodyOffset)
+	var bodyXor [4]byte
+	const buffSize = 16384
+
+	for {
+		ro := mapio.ReadOptions{
+			Offset: currentOffset,
+			Size:   buffSize,
+		}
+
+		currentOffset = currentOffset + buffSize
+
+		chunk, err := mapio.Read(f, ro)
+		if err != nil {
+			return "", err
+		}
+
+		for i, b := range chunk.Data {
+			bodyXor[i&3] ^= b
+		}
+
+		if chunk.Eof {
+			break
+		}
+	}
+
+	wo := mapio.WriteOptions{
+		Offset: signatureOffset,
+		Data:   bodyXor[:],
+	}
+
+	err = mapio.Write(f, wo)
+	if err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(wo.Data), nil
 }
 
 func NewCartographer() (larboard.Cartographer, error) {
